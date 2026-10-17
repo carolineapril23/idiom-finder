@@ -106,8 +106,7 @@ footer{font-size:13px;color:var(--muted)}
   </header>
 
   <form id="f">
-    <input type="text" id="q" value="試" maxlength="4" autocomplete="off" aria-label="輸入要查詢的字">
-    <button class="go" type="submit">查詢</button>
+    <input type="text" id="q" value="試" maxlength="4" autocomplete="off" enterkeyhint="search" placeholder="打一個字，馬上出現成語" aria-label="輸入要查詢的字，打完會自動搜尋">
   </form>
   <div class="chips" id="chips"></div>
 
@@ -224,6 +223,7 @@ function search(q,rec){
   const chars=[...new Set([...q])];
   const hit=chars.length?IDIOMS.map((x,i)=>i).filter(i=>chars.every(c=>IDIOMS[i][0].includes(c))):[];
   const out=hit.filter(i=>IDIOMS[i][4]).concat(hit.filter(i=>!IDIOMS[i][4]));
+  hitCount=out.length;
   const r=$("#res");
   if(!chars.length){r.innerHTML='<div class="empty">請先輸入一個字。</div>';$("#detail").hidden=true;return}
   if(!out.length){
@@ -242,7 +242,7 @@ function search(q,rec){
 }
 
 const PAGE=4;
-let page=0,lastOut=[],lastChars=[],lastQ="",related=false;
+let page=0,lastOut=[],lastChars=[],lastQ="",related=false,hitCount=0;
 function renderList(){
   const out=lastOut,chars=lastChars,q=lastQ;
   const sel=cur?IDIOMS.indexOf(cur):-1;
@@ -337,6 +337,17 @@ $("#af").addEventListener("submit",e=>{
   $("#res").scrollIntoView({behavior:"smooth",block:"start"});
 });
 $("#f").addEventListener("submit",e=>{e.preventDefault();search($("#q").value,true)});
+/* 打字就自動搜尋；注音輸入法組字中先不搜，選好字再搜；停下來 0.8 秒且有結果才記進「最近查過」 */
+let composing=false,qTimer=null;
+function liveSearch(){
+  const q=$("#q").value;
+  search(q);
+  clearTimeout(qTimer);
+  qTimer=setTimeout(()=>{if($("#q").value===q&&q.trim()&&hitCount>0)record(q.trim())},800);
+}
+$("#q").addEventListener("compositionstart",()=>{composing=true});
+$("#q").addEventListener("compositionend",()=>{composing=false;liveSearch()});
+$("#q").addEventListener("input",e=>{if(e.isComposing||composing)return;liveSearch()});
 renderChips();
 search($("#q").value);
 </script>
