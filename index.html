@@ -92,11 +92,14 @@ button{font:inherit;cursor:pointer;border:0;border-radius:999px}
 a{color:var(--brand)}
 .empty{padding:24px;text-align:center;background:var(--panel);border:2px dashed var(--line);border-radius:10px;color:var(--muted)}
 footer{font-size:13px;color:var(--muted)}
-.detail.off{visibility:hidden}
+.detail.off{display:none}
+form#f{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--bg);padding-block:8px;margin-block:-8px}
 html,body{overflow-anchor:none}
 #res{min-height:340px}
 @media(max-width:520px){.detail{padding:12px;gap:10px;min-height:560px}.rb .c{font-size:34px}
-  #res{min-height:420px}
+  body{padding-block:12px 40px}.wrap{gap:12px}
+  header{gap:0;padding-block:0}.eyebrow,.sub{display:none}h1{font-size:28px;line-height:1.25}
+  #res{min-height:0}
   .list{grid-template-columns:1fr;gap:10px;padding-right:6px;max-height:min(370px,58vh)}.list::-webkit-scrollbar{width:12px}
   .card{padding:12px 16px;border-radius:16px}.card .w{font-size:30px;gap:4px 12px}.card .zy{font-size:13px}.card .m{font-size:16px;line-height:1.5}
   .chip{padding:6px 18px;font-size:22px}.count,.info{font-size:15px}}
@@ -223,27 +226,30 @@ function renderChips(){
   $("#chips").innerHTML=(HIST.length?"最近查過：":"試著點點看：")+list.map(c=>`<button class="chip" type="button" data-q="${esc(c)}">${esc(c)}</button>`).join("");
 }
 
-function search(q,rec){
+function search(q,rec,auto=true){
   q=q.trim();
   const chars=[...new Set([...q])];
   const hit=chars.length?IDIOMS.map((x,i)=>i).filter(i=>chars.every(c=>IDIOMS[i][0].includes(c))):[];
   const out=hit.filter(i=>IDIOMS[i][4]).concat(hit.filter(i=>!IDIOMS[i][4]));
   hitCount=out.length;
+  if(!auto)cur=null;
   const r=$("#res");
   if(!chars.length){r.innerHTML='<div class="empty">請先輸入一個字。</div>';$("#detail").classList.add("off");return}
   if(!out.length){
     const rel=IDIOMS.map((x,i)=>i).filter(i=>IDIOMS[i][4]&&chars.every(c=>IDIOMS[i][2].includes(c))).slice(0,12);
     if(rel.length){
       page=0; lastOut=rel; lastChars=chars; lastQ=q; related=true;
-      renderList(); pick(rel[0],0); return}
+      renderList(); if(auto)pick(rel[0],0); else $("#detail").classList.add("off"); return}
     related=false;
     r.innerHTML=`<div class="empty">找不到含「${esc(q)}」的成語。<br>可以到<a href="https://dict.idioms.moe.edu.tw/search.jsp" target="_blank" rel="noopener">教育部成語典</a>查查看，或<a href="https://www.google.com/search?q=${encodeURIComponent("成語 "+q)}" target="_blank" rel="noopener">用 Google 搜尋「成語 ${esc(q)}」</a>。找到後可以<button class="linkbtn" type="button" data-add>把它加進來</button>，就能看筆順。</div>`;
     $("#detail").classList.add("off");return}
   page=0; lastOut=out; lastChars=chars; lastQ=q; related=false;
   if(rec)record(q);
   renderList();
-  const first=out[0];
-  pick(first, Math.max(0,[...IDIOMS[first][0]].findIndex(c=>chars.includes(c))));
+  if(auto){
+    const first=out[0];
+    pick(first, Math.max(0,[...IDIOMS[first][0]].findIndex(c=>chars.includes(c))));
+  }else $("#detail").classList.add("off");
 }
 
 const PAGE=4;
@@ -320,7 +326,7 @@ document.addEventListener("click",e=>{
   const card=e.target.closest(".card"); if(card){pick(+card.dataset.i,Math.max(0,[...IDIOMS[+card.dataset.i][0]].findIndex(c=>$("#q").value.includes(c))));$("#detail").scrollIntoView({behavior:"smooth",block:"start"});return}
   const rb=e.target.closest(".rb"); if(rb){ci=+rb.dataset.c;stop();renderDetail();return}
   if(e.target.id==="play"){timer?(stop(),renderDetail()):play();return}
-  const chip=e.target.closest(".chip"); if(chip){$("#q").value=chip.dataset.q;search(chip.dataset.q,true)}
+  const chip=e.target.closest(".chip"); if(chip){$("#q").value=chip.dataset.q;search(chip.dataset.q,true,true)}
 });
 let zyEdited=false;
 function fillZy(){ if(zyEdited)return; const m=zmap(); $("#az").value=[...$("#aw").value.trim()].map(c=>m[c]||"").join(" ")}
@@ -346,7 +352,7 @@ $("#f").addEventListener("submit",e=>{e.preventDefault();search($("#q").value,tr
 let composing=false,qTimer=null;
 function liveSearch(){
   const q=$("#q").value;
-  search(q);
+  search(q,false,false);
   clearTimeout(qTimer);
   qTimer=setTimeout(()=>{if($("#q").value===q&&q.trim()&&hitCount>0)record(q.trim())},800);
 }
