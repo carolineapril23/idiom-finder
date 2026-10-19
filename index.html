@@ -135,7 +135,6 @@ footer{font-size:13px;color:var(--muted)}
     <input type="text" id="q" value="試" maxlength="4" autocomplete="off" enterkeyhint="search" placeholder="打一個字，馬上出現成語" aria-label="輸入要查詢的字，打完會自動搜尋">
   </form>
   <div class="tabs" role="group" aria-label="切換畫面">
-    <button class="tab" type="button" data-tab="search" aria-pressed="true">查詢</button>
     <button class="tab" type="button" data-tab="mine" aria-pressed="false">我的成語本 <span id="mineCount">0</span></button>
   </div>
 </div></div>
@@ -208,6 +207,7 @@ const TONES="ˊˇˋ˙";
 const ICON={
   plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
   check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>',
+  down:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg>',
   sound:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>',
   pen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1-4L16 5l3 3L8 19l-4 1z"/></svg>'
 };
@@ -435,20 +435,20 @@ function renderDetail(){
   const [w,z,m,ex]=cur, cs=[...w], zs=z.split(" "), ch=cs[ci], n=(STROKES[ch]||[]).length; if(!n)loadStroke(ch);
   const pseudo=cur[4]===-1;
   const rail=cs.map((c,i)=>`<button class="rb" type="button" data-c="${i}" aria-pressed="${i===ci}" aria-label="第${i+1}個字 ${c}"><span class="c">${c}</span>${zyHTML(zs[i]||"")}</button>`).join("");
-  const nextBtn=cs.length>1?`<button class="nextbtn" type="button" data-act="next" aria-label="下一個字">下一個 ▸</button>`:"";
+  const nextBtn=cs.length>1?`<button type="button" data-act="next" aria-label="下一個字">下一個 ${ICON.down}</button>`:"";
   const on=isFav(w);
   const acts=`<div class="acts">${pseudo?"":`<button class="favd" type="button" data-w="${esc(w)}" aria-pressed="${on}">${on?ICON.check+" 已存起來":ICON.plus+" 存起來"}</button>`}${CAN_SPEAK?`<button type="button" data-act="speak">${ICON.sound} ${pseudo?"念出來":"念成語"}</button>`:""}</div>`;
   let body;
   if(n){
     const ctl=writing
-      ?`<div class="ctl"><button type="button" data-act="padhint">提示</button><button type="button" data-act="padreset">重寫</button><button type="button" data-act="padmode">${padMode==="trace"?"改成空白格":"改成描紅"}</button><button class="play" type="button" data-act="write">完成</button></div>`
-      :`<div class="ctl"><button class="play" id="play" type="button">▶ 播放筆順</button><button type="button" data-act="write">${ICON.pen} 手寫練習</button>${CAN_SPEAK?`<button type="button" data-act="speakchar">${ICON.sound} 念「${ch}」</button>`:""}</div>`;
+      ?`<div class="ctl"><button type="button" data-act="padhint">提示</button><button type="button" data-act="padreset">重寫</button><button type="button" data-act="padmode">${padMode==="trace"?"改成空白格":"改成描紅"}</button>${nextBtn}<button class="play" type="button" data-act="write">完成</button></div>`
+      :`<div class="ctl"><button class="play" id="play" type="button">▶ 播放筆順</button><button type="button" data-act="write">${ICON.pen} 手寫練習</button>${CAN_SPEAK?`<button type="button" data-act="speakchar">${ICON.sound} 念「${ch}」</button>`:""}${nextBtn}</div>`;
     body=`<div class="big" id="big">${writing?padBase(ch)+'<canvas id="pad"></canvas>'+padOver():svg(ch,n,false)}</div>
       ${ctl}
       <p class="info" id="info">${writing?esc(padInfo(ch)):`「${ch}」共 ${n} 畫，點「播放筆順」看一筆一筆怎麼寫。藍色是現在這一筆。`}</p>
       <div class="steps">${STROKES[ch].map((_,k)=>`<div class="step"><div>${svg(ch,k+1,true)}</div>第 ${k+1} 畫</div>`).join("")}</div>`;
-  }else body=`<div class="nodata">${FAILED[ch]?`這個字（${ch}）的筆順資料庫裡沒有，可能是少見的異體字。請到教育部筆順網查。`:"筆順載入中…"}</div>`;
-  $("#detail").innerHTML=`<div class="rail">${rail}${nextBtn}</div>
+  }else body=`<div class="nodata">${FAILED[ch]?`這個字（${ch}）的筆順資料庫裡沒有，可能是少見的異體字。請到教育部筆順網查。`:"筆順載入中…"}</div>${nextBtn?`<div class="ctl">${nextBtn}</div>`:""}`;
+  $("#detail").innerHTML=`<div class="rail">${rail}</div>
     <div class="main"><h2>${esc(w)}</h2>${acts}<p class="mean">${pseudo?"沒有找到含這個字的成語，先來練習這個字怎麼寫。":esc(m)}</p>${ex?`<p class="mean ex">例：${esc(ex)}</p>`:""}${radHTML(ch)}${body}
     <div class="links"><a href="https://stroke-order.learningweb.moe.edu.tw/" target="_blank" rel="noopener">到教育部筆順網查「${esc(ch)}」</a>${cur[4]===3?'<button class="del" type="button" data-del>刪除這個成語</button>':""}</div></div>`;
   $("#detail").classList.remove("off");
@@ -608,7 +608,7 @@ function armDelete(btn,fn){
 
 document.addEventListener("click",e=>{
   const t=e.target;
-  const tabBtn=t.closest(".tab"); if(tabBtn){showTab(tabBtn.dataset.tab);return}
+  const tabBtn=t.closest(".tab"); if(tabBtn){showTab(tab==="mine"?"search":"mine");return}
   const fav=t.closest(".fav,.favd"); if(fav){
     const w=fav.dataset.w; setFav(w,!isFav(w)); updateFavUI();
     if(tab==="mine"&&!isFav(w)&&fav.classList.contains("fav")){const cw=fav.closest(".cardwrap"); if(cw)cw.remove(); $("#viewMine .count")&&renderMineCountOnly()}
